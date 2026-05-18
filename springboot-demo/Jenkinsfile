@@ -1,29 +1,17 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Jenkinsfile  –  Spring Boot → EC2 deployment pipeline
-//
-// Required Jenkins credentials (Manage Jenkins → Credentials):
-//   EC2_SSH_KEY  – SSH private key to connect to EC2 instance
-// ─────────────────────────────────────────────────────────────────────────────
-
 pipeline {
 
     agent any
 
-    // ── No 'tools' block – uses mvn/java already on the agent PATH ────────────
-    // If you later configure tools in Jenkins Global Tool Config, you can
-    // add them back:  tools { maven 'Maven-3.9'   jdk 'JDK-17' }
-
     environment {
         APP_NAME   = 'springboot-demo'
-        APP_JAR    = 'target/springboot-demo.jar'
-        DEPLOY_DIR = '/opt/springboot-demo'      // directory on EC2
-        EC2_USER   = 'ec2-user'                  // change to 'ubuntu' for Ubuntu AMIs
-        EC2_HOST   = '< YOUR_EC2_PUBLIC_IP >'    // ← replace with your EC2 host
+        APP_JAR    = 'springboot-demo/target/springboot-demo.jar'
+        DEPLOY_DIR = '/opt/springboot-demo'
+        EC2_USER   = 'ec2-user'                 // change to 'ubuntu' if needed
+        EC2_HOST   = '< YOUR_EC2_PUBLIC_IP >'   // ← replace with your EC2 IP
     }
 
     stages {
 
-        // ── 1. Checkout ───────────────────────────────────────────────────────
         stage('Checkout') {
             steps {
                 checkout scm
@@ -33,42 +21,39 @@ pipeline {
             }
         }
 
-        // ── 2. Build & Test ───────────────────────────────────────────────────
         stage('Build & Test') {
             steps {
-                sh 'mvn clean package'
+                // pom.xml is inside springboot-demo/ subfolder
+                dir('springboot-demo') {
+                    sh 'mvn clean package'
+                }
             }
             post {
                 always {
-                    junit testResults: 'target/surefire-reports/**/*.xml',
+                    junit testResults: 'springboot-demo/target/surefire-reports/**/*.xml',
                           allowEmptyResults: true
                 }
             }
         }
 
-        // ── 3. Archive artifact ───────────────────────────────────────────────
         stage('Archive') {
             steps {
                 archiveArtifacts artifacts: "${APP_JAR}", fingerprint: true
             }
         }
 
-        // ── 4. Deploy to EC2 ─────────────────────────────────────────────────
         stage('Deploy to EC2') {
             steps {
                 sshagent(credentials: ['EC2_SSH_KEY']) {
-                    // Create deploy directory on EC2 if it doesn't exist
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \
                             'mkdir -p ${DEPLOY_DIR}'
                     """
-                    // Copy the JAR to EC2
                     sh """
                         scp -o StrictHostKeyChecking=no \
                             ${APP_JAR} \
                             ${EC2_USER}@${EC2_HOST}:${DEPLOY_DIR}/${APP_NAME}.jar
                     """
-                    // Stop old instance (if running), then start new one
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
                             PID=\$(pgrep -f "${APP_NAME}.jar" || true)
