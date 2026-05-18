@@ -66,20 +66,24 @@ pipeline {
                     """
 
                     // Stop old app and start new app
-                    sh """
-                        ssh -o StrictHostKeyChecking=no \
-                        -i \$PEM \
-                        ${EC2_USER}@${EC2_HOST} '
+                   sh """
+    ssh -o StrictHostKeyChecking=no \
+    -i \$PEM \
+    ${EC2_USER}@${EC2_HOST} << 'EOF'
 
-                            pkill -f "springboot-demo.jar" 2>/dev/null || true
-                            sleep 5
+        pkill -f "springboot-demo.jar" 2>/dev/null || true
+        sleep 5
 
-                            nohup java -jar ${DEPLOY_DIR}/${APP_NAME}.jar \
-                            > ${DEPLOY_DIR}/app.log 2>&1 &
+        nohup java -jar /home/ubuntu/springboot-demo/springboot-demo.jar \
+        > /home/ubuntu/springboot-demo/app.log 2>&1 < /dev/null &
 
-                            echo "Application deployed successfully"
-                        '
-                    """
+        disown || true
+
+        echo "Application deployed successfully"
+
+        exit 0
+EOF
+"""
                 }
             }
         }
