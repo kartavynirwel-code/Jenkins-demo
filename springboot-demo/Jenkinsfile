@@ -68,13 +68,8 @@ pipeline {
                         -i \$PEM \
                         ${EC2_USER}@${EC2_HOST} '
 
-                            PID=\$(pgrep -f "${APP_NAME}.jar" || true)
-
-                            if [ -n "\$PID" ]; then
-                                echo "Stopping old app: \$PID"
-                                kill \$PID
-                                sleep 5
-                            fi
+                            pkill -f "java -jar ${DEPLOY_DIR}/${APP_NAME}.jar" || true
+                            sleep 5
 
                             nohup java -jar ${DEPLOY_DIR}/${APP_NAME}.jar \
                             > ${DEPLOY_DIR}/app.log 2>&1 &
