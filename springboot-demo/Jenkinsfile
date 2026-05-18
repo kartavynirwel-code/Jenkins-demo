@@ -5,7 +5,7 @@ pipeline {
     environment {
         APP_NAME   = 'springboot-demo'
         APP_JAR    = 'springboot-demo/target/springboot-demo.jar'
-        DEPLOY_DIR = '/opt/springboot-demo'
+        DEPLOY_DIR = '/home/ubuntu/springboot-demo'
         EC2_USER   = 'ubuntu'
         EC2_HOST   = '23.22.205.174'
     }
