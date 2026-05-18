@@ -1,21 +1,24 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'JDK21'
-    }
-
     stages {
+
+        stage('Check Java') {
+            steps {
+                sh 'java -version'
+                sh 'javac -version'
+            }
+        }
 
         stage('Compile') {
             steps {
-                sh 'javac Hello.java'
+                sh 'javac HelloWorld.java'
             }
         }
 
         stage('Run') {
             steps {
-                sh 'java Hello'
+                sh 'java HelloWorld'
             }
         }
     }
