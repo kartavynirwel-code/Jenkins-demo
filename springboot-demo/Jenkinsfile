@@ -42,8 +42,7 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 withCredentials([sshUserPrivateKey(
-                    credentialsId: '-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEAlNjOq/j9bbpEC2ExlD4mWyzCqw9qzMIE5ETO9dcNcvu7NKqx
+                    credentialsId: 'MIIEpAIBAAKCAQEAlNjOq/j9bbpEC2ExlD4mWyzCqw9qzMIE5ETO9dcNcvu7NKqx
 FzAAGtVnk1OTbZw37k2RPltA/2d0bQV1anonrROWD26mXe39jsMT5Gx+MjlwRc6p
 1Pe209Vxnc+yJq3Lor/tpEBcA72zA3/pem3CSqGy5ZimmpEy1WW9MwM8rwH1c0sX
 FjrRmr+QQdS/p0cSBxXWLpXUSdgJ0kXQ4nfiX4ZKdmUDzXJEu5vIKkj2/oJf/u+D
@@ -67,8 +66,7 @@ CfA2V3eeuL03A7Itxs6PIXQNFzF6+vnO7r0x8/leEu/gr8H9GUHUGNAv8dJRVANF
 jBA9rvSMZX/Ek9N/wJU6sIa86cCnDeeOb5KgR7fYKj/Fa/BPACAz7w6Wu15EzS3v
 jag7ELECgYBX7ldKVQtUli/e/T6jO9N1JTxO8JA5TCxMuA3CiWexsTDcDivIFad1
 anEVtZxPsTC8YAAhAxuq2aEuyeTpTn99GTDc43N9TI+p+Wr8Y1JUIcbc+TXDPZrL
-ohbRckEks47BtT7I57O3HnouphaVdb/Jp0rShMKKRnQzVIPLSWLNWw==
------END RSA PRIVATE KEY-----',
+ohbRckEks47BtT7I57O3HnouphaVdb/Jp0rShMKKRnQzVIPLSWLNWw==',
                     keyFileVariable: 'PEM'
                 )]) {
                     // 1. Deploy folder banana
