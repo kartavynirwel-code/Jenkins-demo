@@ -6,8 +6,8 @@ pipeline {
         APP_NAME   = 'springboot-demo'
         APP_JAR    = 'springboot-demo/target/springboot-demo.jar'
         DEPLOY_DIR = '/opt/springboot-demo'
-        EC2_USER   = 'ec2-user'                 // change to 'ubuntu' if needed
-        EC2_HOST   = '23.22.205.174'   // ← replace with your EC2 IP
+        EC2_USER   = 'ec2-user'          // ubuntu ke liye 'ubuntu' karo
+        EC2_HOST   = '23.22.205.174'     // apna EC2 IP
     }
 
     stages {
@@ -15,15 +15,12 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                sh 'java -version'
-                sh 'mvn -version'
-                echo "Branch: ${env.GIT_BRANCH}  |  Commit: ${env.GIT_COMMIT?.take(7)}"
+                echo "Commit: ${env.GIT_COMMIT?.take(7)}"
             }
         }
 
         stage('Build & Test') {
             steps {
-                // pom.xml is inside springboot-demo/ subfolder
                 dir('springboot-demo') {
                     sh 'mvn clean package'
                 }
@@ -44,35 +41,29 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(credentials: ['EC2_SSH_KEY']) {
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'EC2_SSH_KEY',
+                    keyFileVariable: 'PEM'
+                )]) {
+                    // 1. Deploy folder banana
+                    sh "ssh -o StrictHostKeyChecking=no -i $PEM ${EC2_USER}@${EC2_HOST} 'mkdir -p ${DEPLOY_DIR}'"
+
+                    // 2. JAR copy karo
+                    sh "scp -o StrictHostKeyChecking=no -i $PEM ${APP_JAR} ${EC2_USER}@${EC2_HOST}:${DEPLOY_DIR}/${APP_NAME}.jar"
+
+                    // 3. Old app band karo, naya start karo
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \
-                            'mkdir -p ${DEPLOY_DIR}'
-                    """
-                    sh """
-                        scp -o StrictHostKeyChecking=no \
-                            ${APP_JAR} \
-                            ${EC2_USER}@${EC2_HOST}:${DEPLOY_DIR}/${APP_NAME}.jar
-                    """
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                        ssh -o StrictHostKeyChecking=no -i $PEM ${EC2_USER}@${EC2_HOST} '
                             PID=\$(pgrep -f "${APP_NAME}.jar" || true)
-                            if [ -n "\$PID" ]; then
-                                echo "Stopping PID \$PID"
-                                kill \$PID
-                                sleep 3
-                            fi
+                            [ -n "\$PID" ] && echo "Stopping \$PID" && kill \$PID && sleep 3
 
                             nohup java -jar ${DEPLOY_DIR}/${APP_NAME}.jar \
-                                --app.env=production \
                                 > ${DEPLOY_DIR}/app.log 2>&1 &
 
-                            echo "Waiting for app to start..."
                             sleep 10
-
-                            curl -sf http://localhost:8080/actuator/health | grep -q "UP" \
-                                && echo "Health check PASSED" \
-                                || (echo "Health check FAILED"; exit 1)
+                            curl -sf http://localhost:8080/actuator/health \
+                                && echo "=== Health check PASSED ===" \
+                                || echo "=== Health check FAILED ==="
                         '
                     """
                 }
@@ -81,11 +72,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Deployment successful! App running at http://${EC2_HOST}:8080"
-        }
-        failure {
-            echo "Pipeline failed. Check logs above."
-        }
+        success { echo "App live at http://${EC2_HOST}:8080/api/hello" }
+        failure { echo "Pipeline FAILED - check logs" }
     }
 }
